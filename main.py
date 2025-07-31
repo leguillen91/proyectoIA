@@ -87,7 +87,7 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 # ENTRENAR
 # ================================
 history = model.fit(X_train, y_train, epochs=50, batch_size=2, validation_data=(X_test, y_test))
-model.save("modelo_emociones.h5")
+##model.save("modelo_emociones.h5")
 # ================================
 # EVALUACIÓN
 # ================================
