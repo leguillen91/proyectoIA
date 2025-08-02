@@ -1,6 +1,7 @@
 import os
 import librosa
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -69,7 +70,7 @@ X_flat = X.reshape(X.shape[0], -1)
 X_train, X_test, y_train, y_test = train_test_split(X_flat, y_onehot, test_size=0.3, random_state=42)
 
 # ================================
-# RED NEURONAL MEJORADA
+# RED NEURONAL
 # ================================
 model = Sequential([
     Dense(256, activation='relu', input_shape=(X_train.shape[1],)),
@@ -87,7 +88,10 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 # ENTRENAR
 # ================================
 history = model.fit(X_train, y_train, epochs=50, batch_size=2, validation_data=(X_test, y_test))
-##model.save("modelo_emociones.h5")
+model.save("modelo_emociones.h5")
+with open("label_encoder.pkl", "wb") as f:
+    pickle.dump(le, f)
+
 # ================================
 # EVALUACIÓN
 # ================================
@@ -109,8 +113,6 @@ plt.show()
 # ================================
 # PREDICCIÓN CON AUDIO NUEVO
 # ================================
-nuevo_audio = os.path.join(PRUEBA_PATH, 'voztriste.wav')
+nuevo_audio = os.path.join(PRUEBA_PATH, 'vozNeutral.wav')
 resultado = predecirEmocion(nuevo_audio, model, le)
-print(f"\nPredicción para voz Triste: {resultado}")
-
-
+print(f"\nPredicción para voz Neutral: {resultado}")
