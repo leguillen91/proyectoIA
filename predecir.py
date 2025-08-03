@@ -5,13 +5,18 @@ import pickle
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tensorflow.keras.models import load_model
-import pygame  # para reproducir audio
+import pygame
+import sounddevice as sd
+from scipy.io.wavfile import write
 
 # ========== PARÁMETROS ==========
 N_MFCC = 40
 MAX_PAD_LEN = 200
+AUDIO_GRABADO = "grabacion.wav"
+DURACION_GRABACION = 3  # segundos
+FS = 44100  # Frecuencia de muestreo
 
-# ========== CARGAR MODELO Y LABEL ENCODER ==========
+# ========== CARGAR MODELO ==========
 modelo = load_model("modelo_emociones.h5")
 with open("label_encoder.pkl", "rb") as f:
     le = pickle.load(f)
@@ -54,31 +59,64 @@ def reproducirAudio():
 def mostrarPrediccion():
     ruta = entrada_audio.get()
     if not ruta:
-        messagebox.showwarning("Advertencia", "Selecciona un archivo de audio.")
+        messagebox.showwarning("Advertencia", "Selecciona o graba un archivo de audio.")
         return
     try:
         resultado = predecirEmocion(ruta)
-        resultado_var.set(f"Emoción detectada: {resultado}")
+        resultado_var.set(f"🎧 Emoción detectada: {resultado}")
     except Exception as e:
         messagebox.showerror("Error en predicción", str(e))
 
+def grabarAudio():
+    try:
+        resultado_var.set("🎙️ Grabando...")
+        root.update()
+
+        # Detener cualquier reproducción de audio en curso
+        if pygame.mixer.get_init():
+            pygame.mixer.music.stop()
+            pygame.mixer.quit()
+
+        # Grabar usando stream explícito
+        segundos = DURACION_GRABACION
+        grabacion = sd.rec(int(segundos * FS), samplerate=FS, channels=1, dtype='int16')
+        sd.wait()
+
+        write(AUDIO_GRABADO, FS, grabacion)
+
+        entrada_audio.set(AUDIO_GRABADO)
+        reproducir_btn.config(state=tk.NORMAL)
+        predecir_btn.config(state=tk.NORMAL)
+        resultado_var.set("✅ Grabación completada. Listo para reproducir o predecir.")
+
+    except Exception as e:
+        messagebox.showerror("Error al grabar", str(e))
+
+
 # ========== INTERFAZ ==========
 root = tk.Tk()
-root.title("Detector de Emociones en la Voz")
+root.title("🎤 Detector de Emociones en la Voz")
+root.geometry("550x360")
+root.configure(bg="#f2f2f2")
 
 entrada_audio = tk.StringVar()
 resultado_var = tk.StringVar()
 
-tk.Label(root, text="Ruta del archivo de audio:").pack(pady=5)
-tk.Entry(root, textvariable=entrada_audio, width=60, state='readonly').pack(pady=5)
+tk.Label(root, text="Archivo de audio seleccionado:", bg="#f2f2f2", font=("Arial", 11)).pack(pady=10)
+tk.Entry(root, textvariable=entrada_audio, width=60, font=("Arial", 10), state='readonly').pack(pady=5)
 
-tk.Button(root, text="Seleccionar Audio", command=seleccionarAudio).pack(pady=5)
-reproducir_btn = tk.Button(root, text="Reproducir Audio", command=reproducirAudio, state=tk.DISABLED)
+btn_frame = tk.Frame(root, bg="#f2f2f2")
+btn_frame.pack(pady=15)
+
+tk.Button(btn_frame, text="🎵 Seleccionar Audio", command=seleccionarAudio, width=20, bg="#4CAF50", fg="white").grid(row=0, column=0, padx=5)
+tk.Button(btn_frame, text="🎤 Grabar Audio", command=grabarAudio, width=20, bg="#2196F3", fg="white").grid(row=0, column=1, padx=5)
+
+reproducir_btn = tk.Button(root, text="▶ Reproducir", command=reproducirAudio, state=tk.DISABLED, bg="#FF9800", fg="white", width=20)
 reproducir_btn.pack(pady=5)
 
-predecir_btn = tk.Button(root, text="Predecir Emoción", command=mostrarPrediccion, state=tk.DISABLED)
+predecir_btn = tk.Button(root, text="🔍 Predecir Emoción", command=mostrarPrediccion, state=tk.DISABLED, bg="#9C27B0", fg="white", width=20)
 predecir_btn.pack(pady=5)
 
-tk.Label(root, textvariable=resultado_var, font=("Arial", 14), fg="blue").pack(pady=10)
+tk.Label(root, textvariable=resultado_var, font=("Arial", 14), fg="#333", bg="#f2f2f2").pack(pady=20)
 
 root.mainloop()
